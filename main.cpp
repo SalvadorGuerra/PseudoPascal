@@ -139,7 +139,7 @@ string lexico(){
 		default: break;
 	}
 	if(estado==0) return lexico();
-	cout << lexema << endl;
+	//cout << lexema << endl;
 	return lexema;
 }
 bool varDefinition(){
@@ -179,9 +179,7 @@ void prgm(){
                 func();
             }
         }
-        cout << "Ultimo lexema: " << lex << endl;
     }
-    cout << "Entrando a bloque de programa" << endl;
     if(lex != "programa"){
         error("Sintaxis", "Se esperaba 'programa', se detecto '" + lex + "'");
     }
@@ -190,9 +188,7 @@ void prgm(){
         error("Sintaxis", "Se esperaba 'inicio', se detecto '" + lex + "'");
     }
     lex = lexico();
-    if(lex != "fin"){
-        bloque();
-    }
+    bloque();
     if(lex != "fin")
         error("Sintaxis", "Se esperaba 'fin', se detecto '" + lex + "'");
     lex=lexico();
@@ -258,7 +254,6 @@ void constant(){
         }
         lex=lexico();
         if(token=="CteEnt" || token=="CteDec" || token=="CteLog" || token=="CteAlf" || token=="Identi"){
-            cout << "Entrando" << endl;
             tipoVar=varType();
             if(tipo != tipoVar){
                 string tipoDefinido, var;
@@ -364,17 +359,14 @@ void proc(){
     if(lex=="inicio"){
         lex=lexico();
         bloque();
-        cout << "Regresando a PRGM" << endl;
         if(lex!="fin"){
             error("Sintaxis", "Se esperaba 'fin', se detecto '"+lex+"'");
         }
-        cout << "Lexema esperando ; es " << lex << endl;
         lex=lexico();
         if(lex!=";"){
             error("Sintaxis", "Se esperaba ';', se detecto '"+lex+"'");
         }
         lex=lexico();
-        cout << "Lexema: " << lex << endl;
     }
 }
 void func(){
@@ -435,7 +427,6 @@ void identi(){
         llamadaFuncion();
     }
 }
-
 void instruccion(){
     if(token=="Identi"){
         lex=lexico();
@@ -545,7 +536,6 @@ void term(){
     }
 }
 void si(){
-    //cout << "Verificando SI" << endl;
     if(lex!="("){
         error("Sintaxis", "Se esperaba '(', se detecto" + lex);
     }
@@ -560,7 +550,6 @@ void si(){
     identi();
     if(token == "OpeRel"){
         lex=lexico();
-        //cout << lex << endl;
         if(token=="Identi"){
             identi();
         }
@@ -574,7 +563,6 @@ void si(){
     }
     //lex=lexico();
     while(lex=="y" || lex=="o"){
-        cout << "Verificando más expresiones" << endl;
         lex=lexico();
         if(lex=="no"){
             lex=lexico();
@@ -587,8 +575,9 @@ void si(){
                 if(token=="Identi"){
                     identi();
                 }
-                else if(token!="CteEnt" && token!="CteDec" && token!="CteLog" && token!="CteAlf"){
-                    error("Sintaxis", "Se esperaba una expresion, se detecto "+lex);
+                else{
+                    if(token!="CteEnt" && token!="CteDec" && token!="CteLog" && token!="CteAlf")
+                        error("Sintaxis", "Se esperaba una expresion, se detecto "+lex);
                     lex=lexico();
                 }
             }
@@ -614,9 +603,7 @@ void si(){
             error("Sintaxis", "Se esperaba ';', se detecto "+lex);
         }
         lex=lexico();
-        cout << "Primer lexema: " << lex << endl;
     }
-    cout << "Saliendo de SI" << endl;
 }
 void expresionAritmetica(){
     Suma();
@@ -658,33 +645,24 @@ void para(){
         lex=lexico();
         si();
     }
-    cout << "Saliendo de PARA" << endl;
 }
 void bloque(){
-    cout << "Leyendo bloque" << endl;
     while(lex!="fin"){
         if(lex=="si"){
-            cout << "Verificando SI" << endl;
             lex=lexico();
             si();
-            cout << "Saliendo de SI" << endl;
         }
         else if(lex=="inicio"){
-            cout << "Verificando sub-bloque" << endl;
             lex=lexico();
             bloque();
-            cout << "Saliendo de sub-bloque" << endl;
         }
         else if(lex=="para"){
-            cout << "Verificando para()" << endl;
             lex=lexico();
             para();
-            cout << "Saliendo de para()" << endl;
         }
         //else instruccion();
         lex=lexico();
     }
-    cout << "Saliendo de bloque: " << lex << endl;
 }
 void readFile(string filename){
     char c;
