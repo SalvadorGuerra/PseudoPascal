@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cctype>
 #include <fstream>
+#include <cstdlib>
 using namespace std;
 const int ACP = 99;
 const int ERR=-1;
@@ -173,6 +174,7 @@ string lexico(){
 		default: break;
 	}
 	if(estado==0) return lexico();
+	//cout << lexema << endl;
 	return lexema;
 }
 bool varDefinition(){
@@ -181,6 +183,10 @@ bool varDefinition(){
 void error(string type, string errDesc){
     cout << type << " (Linea " << line << ", Columna " << column << "): " << errDesc << endl;
     errors++;
+    if(errors > 10){
+        cout << "Compilacion abortada. Demasiados errores encontrados" << endl;
+        exit(0);
+    }
 }
 void prgm(){
     lex=lexico();
@@ -412,8 +418,10 @@ void func(){
             error("Sintaxis", "Se esperaba un identificador, se detecto '"+lex+"'");
         }
         lex=lexico();
-        if(lex!="," && lex!=")") error("Sintaxis", "Se esperaba ',', se detecto '"+lex+"'");
-        else if(lex!=")") lex=lexico();
+        if(lex!="," && lex!=")")
+            error("Sintaxis", "Se esperaba ',', se detecto '"+lex+"'");
+        else if(lex!=")")
+            lex=lexico();
     }
     if(lex!=")"){
         error("Sintaxis", "Se esperaba ')', se detecto '"+lex+"'");
@@ -439,15 +447,17 @@ void func(){
 }
 void identi(){
     if(lex == "["){
-        lex=lexico();
-        if(token != "Identi" && token!="CteEnt"){
-            error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+        while(lex=="["){
+            lex=lexico();
+            if(token != "Identi" && token!="CteEnt"){
+                error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+            }
+            lex=lexico();
+            if(lex != "]"){
+                error("Sintaxis", "Se esperaba un ']', se detecto " + lex);
+            }
+            lex=lexico();
         }
-        lex=lexico();
-        if(lex != "]"){
-            error("Sintaxis", "Se esperaba un ']', se detecto " + lex);
-        }
-        lex=lexico();
     }
     else if(lex == "("){
         lex=lexico();
@@ -457,58 +467,128 @@ void identi(){
 void instruccion(){
     if(token=="Identi"){
         lex=lexico();
-        if(lex=="("){
+        if(lex=="("){ // Llamada a funcion
             lex=lexico();
             llamadaFuncion();
         }
-        else{
+        else{ // Asignacion
             while(lex=="["){
                 lex=lexico();
                 if(token=="Identi"){
                     lex=lexico(),
                     identi();
                 }
-                //if()
+                else if(token=="CteEnt"){
+                    lex=lexico();
+                }
+                else{
+                    error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+                }
+                if(lex!="]"){
+                    error("Sintaxis", "Se esperaba ']', se detecto " + lex);
+                }
+                lex=lexico();
             }
-            lex=lexico();
-            if(token!="CteEnt" && token!="CteDec" && token!="CteLog" && token!="CteAlf" && token!="Identi"){
-                error("Sintaxis", "Se esperaba una expresion, se detecto " + lex);
+            //lex=lexico();
+            if(token=="OpeAsi"){
+                lex=lexico();
+                expresionLogica();
             }
+        }
+        if(lex!=";"){
+            error("Sintaxis", "Se esperaba ';', se detecto " + lex);
+        }
+        else{
             lex=lexico();
         }
     }
-    else if(lex=="interrumpe"||lex=="continua"){
+    else if(lex=="imprime" || lex=="imprimenl"){
+        lex=lexico();
+        if(lex!="("){
+            error("Sintaxis", "Se esperaba '(', se detecto " + lex);
+        }
+        lex=lexico();
+        while(lex!=")"){
+            if(token=="Identi"){
+                lex=lexico();
+                identi();
+            }
+            else if(token=="CteEnt" || token=="CteDec" || token=="CteAlf" || token=="CteLog"){
+                lex=lexico();
+            }
+            else{
+                error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+                lex=lexico();
+            }
+            if(lex==","){
+                lex=lexico();
+            }
+            else if(lex!=")"){
+                error("Sintaxis", "No se esperaba " + lex);
+                lex=lexico();
+            }
+        }
+        if(lex!=")"){
+            error("Sintaxis", "Se esperaba ')', se detecto " + lex);
+        }
+        lex=lexico();
+        if(lex!=";"){
+            error("Sintaxis", "Se esperaba ';', se detecto "+lex);
+        }
+        else
+            lex=lexico();
+    }
+    else if(lex=="lee"){
+        lex=lexico();
+        if(lex!="("){
+            error("Sintaxis", "Se esperaba '(', se detecto " + lex);
+        }
+        lex=lexico();
+        if(token=="Identi"){
+            lex=lexico();
+            identi();
+        }
+        else{
+            error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+            lex=lexico();
+        }
+        if(lex!=")"){
+            error("Sintaxis", "Se esperaba ')', se detecto " + lex);
+        }
+        lex=lexico();
+        if(lex!=";"){
+            error("Sintaxis", "Se esperaba ';', se detecto "+lex);
+        }
+        lex=lexico();
+    }
+    else if(lex=="continua" || lex=="interrumpe"){
         lex=lexico();
         if(lex!=";"){
             error("Sintaxis", "Se esperaba ';', se detecto " + lex);
         }
-        lex=lexico();
-    }
-    else if(lex=="regresa"){
-        lex=lexico();
-        expresionLogica();
-        if(lex!=";"){
-            error("Sintaxis", "Se esperaba ';', se detecto " + lex);
-        }
-        lex=lexico();
+        else
+            lex=lexico();
     }
 }
 void llamadaFuncion(){
-    if(token!="Identi"){
-        error("Sintactico", "Se esperaba un identificador, se detecto "+lex);
-    }
-    lex=lexico();
-    while(lex == ","){
-        lex=lexico();
-        if(token!="Identi"){
-            error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+    if(token=="Identi" || token=="CteEnt" || token=="CteDec" || token=="CteAlf" || token=="CteLog"){
+        expresionLogica();
+        while(lex==","){
+            lex=lexico();
+            expresionLogica();
+            if(!(token=="Identi" || token=="CteEnt" || token=="CteDec" || token=="CteAlf" || token=="CteLog") && lex!=")"){
+                error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+                lex=lexico();
+            }
+        }
+        if(lex != ")"){
+            error("Sintaxis", "Se esperaba ')', se detecto " + lex);
         }
         lex=lexico();
     }
-    if(lex != ")"){
-        error("Sintaxis", "Se esperaba ')', se detecto " + lex);
+    else if(lex==")"){
+        lex=lexico();
     }
-    lex=lexico();
 }
 void suma(){
     multiplicacion();
@@ -553,6 +633,10 @@ void term(){
         lex=lexico();
         identi();
     }
+    else if(token=="PalRes"){
+        error("Sintaxis", "Se esperaba un identificador, se detecto " + lex);
+        lex=lexico();
+    }
 }
 void si(){
     if(lex!="("){
@@ -577,10 +661,16 @@ void si(){
         lex=lexico();
     }
     else{
-        // instruccion(); Pendiente
-        while(lex!=";")
+        if(lex=="regresa"){
             lex=lexico();
-        lex=lexico();
+            expresionLogica();
+            if(lex!=";"){
+                error("Sintactico", "Se esperaba ';', se detecto " + lex);
+            }
+            lex=lexico();
+        }
+        else
+            instruccion();
     }
     if(lex=="sino"){
         lex=lexico();
@@ -597,10 +687,7 @@ void si(){
             lex=lexico();
         }
         else{
-            while(lex!=";"){
-                lex=lexico();
-            }
-            lex=lexico();
+            instruccion();
         }
     }
 }
@@ -614,6 +701,10 @@ void o(){
     y();
     while(lex=="o"){
         lex=lexico();
+        if(token!="Identi" && token!="CteEnt" && token!="CteDec" && token!="CteAlf" && token!="CteLog" && lex!="no" && lex!="y"){
+            error("Sintactico", "Se esperaba expresion, se detecto " + lex);
+        }
+        else
         y();
     }
 }
@@ -621,7 +712,11 @@ void y(){
     no();
     while(lex=="y"){
         lex=lexico();
-        no();
+        if(token!="Identi" && token!="CteEnt" && token!="CteDec" && token!="CteAlf" && token!="CteLog" && lex!="no"){
+            error("Sintactico", "Se esperaba expresion, se detecto " + lex);
+        }
+        else
+            no();
     }
 }
 void no(){
@@ -712,6 +807,17 @@ void para(){
         lex=lexico();
         si();
     }
+    else if(lex=="haz"){
+        lex=lexico();
+        haz();
+    }
+    else if(lex=="iterar"){
+        lex=lexico();
+        iterar();
+    }
+    else{
+        instruccion();
+    }
 }
 void bloque(){
     while(lex!="fin"){
@@ -735,7 +841,35 @@ void bloque(){
             lex=lexico();
             haz();
         }
-        else lex=lexico();
+        else if(lex=="regresa"){
+            lex=lexico();
+            expresionLogica();
+            if(lex!=";"){
+                error("Sintaxis", "Se esperaba ';', se detecto " + lex);
+            }
+            lex=lexico();
+        }
+        else if(lex=="sino"){
+            error("Sintactico", "Clausula 'sino' sin un 'si' previo");
+            lex=lexico();
+            if(lex=="inicio"){
+                lex=lexico();
+                bloque();
+                if(lex!="fin"){
+                    error("Sintaxis", "Se esperaba 'fin', se detecto "+lex);
+                }
+                lex=lexico();
+                if(lex!=";"){
+                    error("Sintaxis","Se esperaba ';', se detecto " + lex);
+                }
+                lex=lexico();
+            }
+            else{
+                instruccion();
+            }
+        }
+        else
+            instruccion();
     }
 }
 void haz(){
